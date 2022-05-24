@@ -73,8 +73,8 @@ class MainActivity : ComponentActivity() {
 
     private fun getPrice(curr: String){
         val res: String
-        if (curr in currMap){
-            println("HAHAHAH")
+        if (curr in currMap.keys){
+            println(currMap[curr])
         }
     }
 
@@ -92,7 +92,7 @@ class MainActivity : ComponentActivity() {
                 for (i in 0..t) {
                     println(response.getJSONObject(i))
                     val tmp = response.getJSONObject(i)
-                    currMap.put(tmp.getString("id"), tmp.getString("name"))
+                    currMap.put(tmp.getString("name"), tmp.getString("id"))
                 }
                 println(currMap)
 
