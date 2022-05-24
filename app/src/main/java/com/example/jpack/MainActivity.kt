@@ -7,21 +7,46 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import com.android.volley.Request
+import com.android.volley.RequestQueue
+import com.android.volley.toolbox.*
 import com.example.jpack.ui.theme.JpackTheme
 
 class MainActivity : ComponentActivity() {
+
+    lateinit var currMap: HashMap<String, String>
+    // Instantiate the cache
+    lateinit var cache: DiskBasedCache
+
+    // Set up the network to use HttpURLConnection as the HTTP client.
+    lateinit var network : BasicNetwork
+
+    // Instantiate the RequestQueue with the cache and network. Start the queue.
+    lateinit var requestQueue : RequestQueue
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        cache = DiskBasedCache(cacheDir, 1024 * 1024) // 1MB cap
+
+        network = BasicNetwork(HurlStack())
+
+        requestQueue = RequestQueue(cache, network).apply {
+            start()
+        }
+        currMap = HashMap<String, String>()
+
+        getList()
+
         setContent {
             JpackTheme {
                 // A surface container using the 'background' color from the theme
@@ -29,31 +54,66 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .background(Color.LightGray)
                         .fillMaxSize(),
-                    horizontalArrangement = Arrangement.Center
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Greeting("Eiva")
+
                     val text = remember { mutableStateOf("") }
-                    TextField(value = text.value, onValueChange = { getPrice(curr = it)})
+                    TextField(
+                        value = text.value,
+                        onValueChange = {
+                            getPrice(curr = it)
+                            text.value = it
+                        },
+                        label = {Text(text="Введите криптовалюту")})
                 }
             }
         }
     }
-}
 
-fun getPrice(curr: String){
-    val res: String
+    private fun getPrice(curr: String){
+        val res: String
+        if (curr in currMap){
+            println("HAHAHAH")
+        }
+    }
 
+    private fun getList(){
+        val url = "https://api.coingecko.com/api/v3/coins/list"
+        var len : Int
+
+        val jsonArrayRequest = JsonArrayRequest(
+            Request.Method.GET, url, null,
+            { response ->
+                currMap = HashMap<String, String>(response.length())
+                println("Response: %s".format(response.toString()))
+                val t = response.length()-1
+                len = response.length()
+                for (i in 0..t) {
+                    println(response.getJSONObject(i))
+                    val tmp = response.getJSONObject(i)
+                    currMap.put(tmp.getString("id"), tmp.getString("name"))
+                }
+                println(currMap)
+
+            },
+            { error ->
+                println("L $error")
+            }
+        )
+        requestQueue.add(jsonArrayRequest)
+    }
 }
 
 @Composable
-fun Greeting(name: String) {
-    Text(text = "Hello $name!")
+fun Stat(status: String) {
+    Text(text = "App is $status!")
 }
 
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {
     JpackTheme {
-        Greeting("Android")
+        Stat("loading")
     }
 }
