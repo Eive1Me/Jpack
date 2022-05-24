@@ -3,10 +3,9 @@ package com.example.jpack
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
@@ -16,6 +15,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.annotation.ExperimentalCoilApi
+import coil.compose.rememberImagePainter
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.*
@@ -32,6 +37,10 @@ class MainActivity : ComponentActivity() {
 
     // Instantiate the RequestQueue with the cache and network. Start the queue.
     lateinit var requestQueue : RequestQueue
+
+    var name : String = ""
+    var price : String = ""
+    var image : String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,14 +59,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             JpackTheme {
                 // A surface container using the 'background' color from the theme
-                Row(
+                Column(
                     modifier = Modifier
                         .background(Color.LightGray)
                         .fillMaxSize(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-
                     val text = remember { mutableStateOf("") }
                     TextField(
                         value = text.value,
@@ -66,12 +74,17 @@ class MainActivity : ComponentActivity() {
                             text.value = it
                         },
                         label = {Text(text="Введите криптовалюту")})
+                    setInfo(name = name, price = price, image = image)
                 }
             }
         }
     }
 
     private fun getData(curr: String){
+        if (curr.equals("") || curr.equals(" ")){
+            name = ""
+            return
+        }
         val url = "https://api.coingecko.com/api/v3/coins/"
         if (curr in currMap.keys){
             println(currMap[curr])
@@ -80,11 +93,11 @@ class MainActivity : ComponentActivity() {
                 { response ->
                     println("Response: %s".format(response.toString()))
 
-                    val tmpName = response.getString("name")
-                    val tmpUsdPrice = response.getJSONObject("market_data").getJSONObject("current_price").getInt("usd")
-                    val tmpImage = response.getJSONObject("image").getString("large")
+                    name = response.getString("name")
+                    price = response.getJSONObject("market_data").getJSONObject("current_price").getString("rub")
+                    image = response.getJSONObject("image").getString("large")
 
-                    println("$tmpName $tmpUsdPrice $tmpImage")
+                    println("$name $price $image")
 
                 },
                 { error ->
@@ -116,6 +129,27 @@ class MainActivity : ComponentActivity() {
             }
         )
         requestQueue.add(jsonArrayRequest)
+    }
+}
+@OptIn(ExperimentalCoilApi::class)
+@Composable
+fun setInfo(name : String, price : String, image : String){
+    Row(
+        modifier = Modifier
+            .height(200.dp)
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (!name.equals("")) {
+            Text(text = "$name ", fontSize = 24.sp)
+            Text(text = "$price₽ ", fontSize = 24.sp)
+            val painter = rememberImagePainter(
+                data = image,
+                builder = {
+                })
+            Image(painter = painter, contentDescription = "Logo Image")
+        }
     }
 }
 
