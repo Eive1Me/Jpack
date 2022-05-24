@@ -62,7 +62,7 @@ class MainActivity : ComponentActivity() {
                     TextField(
                         value = text.value,
                         onValueChange = {
-                            getPrice(curr = it)
+                            getData(curr = it)
                             text.value = it
                         },
                         label = {Text(text="Введите криптовалюту")})
@@ -71,16 +71,32 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun getPrice(curr: String){
-        val res: String
+    private fun getData(curr: String){
+        val url = "https://api.coingecko.com/api/v3/coins/"
         if (curr in currMap.keys){
             println(currMap[curr])
+            val jsonObjectRequest = JsonObjectRequest(
+                Request.Method.GET, url + currMap[curr], null,
+                { response ->
+                    println("Response: %s".format(response.toString()))
+
+                    val tmpName = response.getString("name")
+                    val tmpUsdPrice = response.getJSONObject("market_data").getJSONObject("current_price").getInt("usd")
+                    val tmpImage = response.getJSONObject("image").getString("large")
+
+                    println("$tmpName $tmpUsdPrice $tmpImage")
+
+                },
+                { error ->
+                    println("L $error")
+                }
+            )
+            requestQueue.add(jsonObjectRequest)
         }
     }
 
     private fun getList(){
         val url = "https://api.coingecko.com/api/v3/coins/list"
-        var len : Int
 
         val jsonArrayRequest = JsonArrayRequest(
             Request.Method.GET, url, null,
@@ -88,9 +104,7 @@ class MainActivity : ComponentActivity() {
                 currMap = HashMap<String, String>(response.length())
                 println("Response: %s".format(response.toString()))
                 val t = response.length()-1
-                len = response.length()
                 for (i in 0..t) {
-                    println(response.getJSONObject(i))
                     val tmp = response.getJSONObject(i)
                     currMap.put(tmp.getString("name"), tmp.getString("id"))
                 }
